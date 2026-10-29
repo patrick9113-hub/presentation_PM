@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Матричний проєкт</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070b12;--panel:#0e1523;--panel2:#131c2d;--line:#22304a;--ink:#eaf0f8;--muted:#8b97ab;
+  --amber:#ffb22e;--cyan:#38e1ff;--lime:#c6ff3d;--pink:#ff4f8b;--green:#3be3a0;--violet:#b48cff;
+  --disp:'Unbounded',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#03060b;color:var(--ink);overflow:hidden;font-family:'Manrope',system-ui,sans-serif}
+#stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform-origin:center;overflow:hidden;overflow:clip;
+  background:radial-gradient(1100px 650px at 85% -15%,#14264a 0,transparent 60%),radial-gradient(900px 600px at -10% 115%,#1d1436 0,transparent 60%),var(--bg)}
+#stage::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);
+  background-size:80px 80px;mask-image:radial-gradient(ellipse at center,#000 40%,transparent 90%)}
+.slide{position:absolute;inset:0;padding:64px 90px;opacity:0;visibility:hidden;transform:translateX(70px);
+  transition:opacity .5s ease,transform .65s cubic-bezier(.2,.8,.2,1),visibility .5s}
+.slide.active{opacity:1;visibility:visible;transform:none}
+.slide.past{transform:translateX(-70px)}
+.slide.active .rv{animation:rise .75s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--d,0) * 90ms + 120ms)}
+@keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+.kick{font-family:var(--mono);font-size:16px;letter-spacing:.18em;text-transform:uppercase;color:var(--lime);display:flex;align-items:center;gap:12px}
+.kick::before{content:"";width:28px;height:2px;background:currentColor}
+h2{font-family:var(--disp);font-weight:800;font-size:54px;line-height:1.05;margin-top:14px;letter-spacing:-.01em}
+.am{color:var(--amber)}.cy{color:var(--cyan)}.li{color:var(--lime)}.pk{color:var(--pink)}.gr{color:var(--green)}.vi{color:var(--violet)}
+.muted{color:var(--muted)}
+.foot{position:absolute;left:90px;bottom:26px;font-family:var(--mono);font-size:13px;color:#5f6b80}
+
+/* HUD */
+#hud{position:absolute;right:40px;bottom:22px;display:flex;align-items:center;gap:12px;z-index:50}
+#hud button{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:rgba(14,21,35,.8);color:var(--ink);font-size:20px;cursor:pointer;transition:.2s}
+#hud button:hover{border-color:var(--lime);color:var(--lime)}
+#count{font-family:var(--mono);font-size:15px;color:var(--muted);min-width:70px;text-align:center}
+#prog{position:absolute;left:0;bottom:0;height:4px;background:linear-gradient(90deg,var(--amber),var(--lime),var(--cyan));transition:width .6s cubic-bezier(.2,.8,.2,1);z-index:50}
+#notes{position:absolute;left:90px;right:90px;bottom:80px;padding:18px 24px;border-radius:14px;background:rgba(5,8,14,.94);border:1px solid var(--lime);font-size:20px;line-height:1.45;z-index:60;display:none}
+#notes.on{display:block}
+#notes b{font-family:var(--mono);color:var(--lime);font-size:14px;letter-spacing:.12em;display:block;margin-bottom:6px}
+
+/* ---------- 1. HERO ---------- */
+.hero{display:grid;grid-template-columns:1fr 600px;gap:60px;align-items:center;height:100%}
+.hero h1{font-family:var(--disp);font-weight:800;font-size:112px;line-height:.95;letter-spacing:-.02em;margin:26px 0 28px}
+.hero h1 span{display:block}
+.hero h1 .outline{color:transparent;-webkit-text-stroke:2px var(--lime)}
+.hero p.lead{font-size:28px;line-height:1.4;color:#c9d3e2;max-width:760px}
+.who{margin-top:46px;font-family:var(--mono);font-size:18px;color:var(--muted);padding:12px 16px;border:1px dashed var(--line);border-radius:10px;display:inline-block;outline:none;min-width:360px}
+.who:focus{border-color:var(--lime);color:var(--ink)}
+.keys{margin-top:18px;font-family:var(--mono);font-size:14px;color:#5f6b80}
+.keys kbd{border:1px solid var(--line);border-radius:6px;padding:2px 8px;color:var(--ink);background:var(--panel)}
+.hwrap{position:relative;padding:40px 0 0 50px}
+.hgrid{display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(5,1fr);gap:10px;width:550px;height:420px}
+.hcell{border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);transition:background .5s,border-color .5s,box-shadow .5s,transform .5s;display:grid;place-items:center}
+.hcell svg{width:34px;height:34px;opacity:0;transition:.4s}
+.hcell.r{background:rgba(255,178,46,.16);border-color:rgba(255,178,46,.55)}
+.hcell.c{background:rgba(56,225,255,.14);border-color:rgba(56,225,255,.55)}
+.hcell.x{background:var(--lime);border-color:var(--lime);box-shadow:0 0 50px rgba(198,255,61,.55);transform:scale(1.08)}
+.hcell.x svg{opacity:1}
+.hlab{position:absolute;font-family:var(--mono);font-size:14px;letter-spacing:.15em}
+.hlab.top{top:6px;left:50px;color:var(--cyan)}
+.hlab.left{left:0;top:40px;writing-mode:vertical-rl;transform:rotate(180deg);color:var(--amber);height:420px;text-align:right}
+
+/* ---------- 2. WHAT ---------- */
+.two{display:grid;grid-template-columns:600px 1fr;gap:60px;margin-top:40px}
+.def{font-size:30px;line-height:1.4;font-weight:500}
+.def b{color:var(--lime);font-weight:800}
+.axis{margin-top:30px;display:flex;flex-direction:column;gap:16px}
+.ax{display:flex;gap:18px;align-items:flex-start;padding:16px 20px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
+.ax i{flex:none;width:6px;align-self:stretch;border-radius:4px}
+.ax h4{font-family:var(--disp);font-size:20px;margin-bottom:4px}
+.ax p{font-size:18px;color:#c0cad9;line-height:1.4}
+.hist{margin-top:22px;font-family:var(--mono);font-size:15px;color:var(--muted);line-height:1.5}
+.cross{position:relative;width:760px;height:520px;margin-top:-10px}
+.crl{position:absolute;inset:0;width:100%;height:100%}
+.fl{stroke-width:5;stroke-linecap:round;animation:flow 1.1s linear infinite}
+.fl.am-l{stroke:var(--amber);stroke-dasharray:14 10}
+.fl.cy-l{stroke:var(--cyan);stroke-dasharray:3 11}
+.fl.dim{opacity:.22;animation:none}
+.cnode{position:absolute;transform:translateX(-50%);padding:14px 20px;border-radius:14px;background:var(--panel);text-align:center;white-space:nowrap}
+.cnode.cy-n{transform:none}
+.cnode b{display:block;font-family:var(--disp);font-size:19px;font-weight:600}
+.cnode span{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.am-n{border:2px solid var(--amber)}.am-n b{color:var(--amber)}
+.cy-n{border:2px solid var(--cyan)}.cy-n b{color:var(--cyan)}
+.ccat{position:absolute;left:360px;top:192px;width:140px;height:140px;border-radius:50%;overflow:hidden;background:#182238;border:4px solid var(--lime);box-shadow:0 0 0 10px rgba(198,255,61,.12),0 0 60px rgba(198,255,61,.45);animation:catpulse 2.4s ease-in-out infinite}
+.ccat svg{width:100%;height:100%}
+@keyframes catpulse{50%{box-shadow:0 0 0 18px rgba(198,255,61,.06),0 0 80px rgba(198,255,61,.6)}}
+.ccap{position:absolute;left:430px;top:346px;transform:translateX(-50%);text-align:center;font-family:var(--disp);font-size:22px;color:var(--lime);white-space:nowrap;background:var(--bg);padding:2px 10px}
+.ccap span{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.cend{position:absolute;font-family:var(--mono);font-size:13px;letter-spacing:.08em}
+
+/* ---------- 3. TYPES ---------- */
+.types{display:grid;grid-template-columns:1fr 640px;gap:70px;margin-top:40px;align-items:start}
+.bars{display:flex;justify-content:center;gap:70px;height:330px;align-items:flex-end;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.bar{width:170px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.bar .v{font-family:var(--disp);font-size:34px;font-weight:800;margin-bottom:10px}
+.bar .b{width:100%;border-radius:14px 14px 4px 4px;transition:height .35s cubic-bezier(.2,.8,.2,1)}
+.bar.f .b{background:linear-gradient(180deg,var(--amber),rgba(255,178,46,.25));box-shadow:0 0 40px rgba(255,178,46,.25)}
+.bar.p .b{background:linear-gradient(180deg,var(--cyan),rgba(56,225,255,.25));box-shadow:0 0 40px rgba(56,225,255,.25)}
+.blabels{display:flex;justify-content:center;gap:70px;margin-top:12px}
+.blabels div{width:170px;text-align:center;font-size:16px;font-weight:700;line-height:1.25}
+.sl{margin-top:44px;position:relative}
+.sl input{width:100%;-webkit-appearance:none;appearance:none;height:10px;border-radius:10px;background:linear-gradient(90deg,var(--amber),var(--lime),var(--cyan));outline:none}
+.sl input::-webkit-slider-thumb{-webkit-appearance:none;width:34px;height:34px;border-radius:50%;background:#fff;border:6px solid #0b0f17;box-shadow:0 0 0 2px #fff,0 0 30px rgba(255,255,255,.5);cursor:grab}
+.sl input::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#fff;border:6px solid #0b0f17;cursor:grab}
+.zones{display:flex;justify-content:space-between;margin-top:16px;font-family:var(--mono);font-size:15px;color:var(--muted)}
+.zones span.on{color:var(--ink);font-weight:700}
+.casemark{position:absolute;left:50%;top:-34px;transform:translateX(-50%);font-family:var(--mono);font-size:13px;color:var(--lime);white-space:nowrap}
+.casemark::after{content:"";display:block;width:2px;height:12px;background:var(--lime);margin:4px auto 0}
+.tcard{padding:28px 30px;border-radius:18px;background:var(--panel);border:1px solid var(--line);margin-top:34px}
+.tcard h3{font-family:var(--disp);font-size:36px;margin-bottom:12px}
+.tcard p{font-size:23px;line-height:1.45;color:#cdd6e4}
+.tnote{margin-top:22px;font-size:19px;color:var(--muted);line-height:1.5}
+
+/* ---------- 4. CASE ---------- */
+.case{display:grid;grid-template-columns:560px 1fr;gap:50px;margin-top:34px}
+.fact{padding:16px 20px;border-radius:14px;background:var(--panel);border:1px solid var(--line);margin-bottom:12px}
+.fact small{font-family:var(--mono);font-size:13px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.fact p{font-size:20px;line-height:1.4;margin-top:4px}
+.fact.big p{font-family:var(--disp);font-size:21px;line-height:1.35;color:var(--lime)}
+.net{position:relative}
+.net svg{width:100%;height:390px}
+.net .ln{stroke:#2b3a58;stroke-width:2;stroke-dasharray:6 8;animation:flow 1.6s linear infinite;transition:.3s}
+.net .ln.on{stroke:var(--lime);stroke-width:4}
+.net .nd circle{fill:#121b2c;stroke:#3a4866;stroke-width:2;transition:.3s}
+.net .nd.on circle{fill:#1e2b12;stroke:var(--lime);stroke-width:3}
+.net text{fill:var(--ink);font-family:Manrope,sans-serif;font-size:15px;font-weight:700}
+.net text.lt{font-family:var(--mono);font-size:20px;fill:var(--lime)}
+.net text.s{fill:var(--muted);font-size:13px;font-weight:500}
+@keyframes flow{to{stroke-dashoffset:-28}}
+.groups{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.grp{text-align:left;padding:12px 16px;border-radius:12px;background:var(--panel);border:1px solid var(--line);color:var(--ink);font:600 16px/1.3 Manrope,sans-serif;cursor:pointer;transition:.2s}
+.grp b{font-family:var(--mono);color:var(--lime);margin-right:6px}
+.grp:hover,.grp.on{border-color:var(--lime);background:rgba(198,255,61,.08)}
+
+/* ---------- SCENES ---------- */
+.shead{display:flex;align-items:flex-end;justify-content:space-between}
+.shead h2{font-size:46px}
+.sgrid{position:absolute;left:90px;right:90px;top:178px;bottom:70px;display:grid;grid-template-columns:1fr 400px;grid-template-rows:1fr 168px;gap:18px}
+.lab{grid-column:1;grid-row:1;position:relative;border-radius:20px;overflow:hidden;border:1px solid var(--line);cursor:pointer;background:#0b1322}
+.labbg,.labbg svg{position:absolute;inset:0;width:100%;height:100%}
+.wb{font-family:'JetBrains Mono',monospace;fill:#9fb3d1;font-size:15px;letter-spacing:.08em}
+.wb.s{font-size:12px;fill:#6f7f9c}
+.bub{animation:bub 2.6s ease-in infinite;transform-box:fill-box}
+@keyframes bub{0%{transform:translateY(0);opacity:0}15%{opacity:.9}100%{transform:translateY(-46px);opacity:0}}
+.chars{position:absolute;inset:0}
+.char{position:absolute;bottom:4px;width:150px;transition:filter .4s,opacity .4s,transform .45s cubic-bezier(.2,.8,.2,1)}
+.char .av{width:150px;height:262px;display:block;animation:bob 3.4s ease-in-out infinite;animation-delay:var(--bd,0s)}
+@keyframes bob{50%{transform:translateY(-4px)}}
+.char .tag{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);white-space:nowrap;font:700 13px/1 Manrope,sans-serif;padding:6px 10px;border-radius:20px;background:rgba(7,11,18,.85);border:1px solid var(--c);color:var(--c)}
+.chars.has .char{filter:brightness(.45) saturate(.6)}
+.chars.has .char.sp{filter:none;transform:translateY(-12px) scale(1.06);z-index:2}
+.char.sp::before{content:"";position:absolute;left:10%;right:10%;bottom:-6px;height:20px;border-radius:50%;background:var(--c);filter:blur(16px);opacity:.7}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+.av .m2{opacity:0;transform-box:fill-box;transform-origin:center}
+.talk .av .m1{opacity:0}
+.talk .av .m2{opacity:1;animation:talk .22s ease-in-out infinite alternate}
+@keyframes talk{from{transform:scaleY(.35)}to{transform:scaleY(1.15)}}
+.monitor{position:absolute;left:39.5%;top:6%;width:27%;height:33%;border-radius:12px;background:#060b14;border:3px solid #2b3a58;box-shadow:0 0 0 6px #121b2c,0 20px 50px rgba(0,0,0,.5);overflow:hidden;transition:.4s}
+.monitor.sp{border-color:var(--violet);box-shadow:0 0 0 6px #121b2c,0 0 60px rgba(180,140,255,.55)}
+.monitor .mhead{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted);padding:8px 12px;border-bottom:1px solid #1b2740;display:flex;justify-content:space-between}
+.monitor .live{color:var(--pink)}
+.mbars{display:flex;align-items:flex-end;gap:12px;height:calc(100% - 56px);padding:10px 18px 0}
+.mbars i{flex:1;border-radius:6px 6px 0 0;background:linear-gradient(180deg,var(--cyan),rgba(56,225,255,.15));animation:grow 3s ease-in-out infinite alternate}
+@keyframes grow{from{height:30%}to{height:90%}}
+.mfoot{font-family:var(--mono);font-size:10px;color:#5f6b80;padding:4px 12px}
+.call{position:relative;height:calc(100% - 30px);background:radial-gradient(circle at 50% 30%,#2a1f45,#0b0f1a)}
+.call svg{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);height:118%}
+.call .cn{position:absolute;left:8px;bottom:8px;font:700 12px Manrope,sans-serif;background:rgba(0,0,0,.6);padding:4px 8px;border-radius:6px;color:var(--violet)}
+.monitor.sp.talk .m1{opacity:0}
+.monitor.talk .m2{opacity:1;animation:talk .22s ease-in-out infinite alternate}
+
+.side{grid-column:2;grid-row:1/3;display:flex;flex-direction:column;gap:14px}
+.chartbox{padding:14px 16px 10px;border-radius:18px;background:var(--panel);border:1px solid var(--line)}
+.chartbox h5{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--muted);margin-bottom:6px}
+.chartbox svg{width:100%;height:250px;display:block}
+.e{stroke-width:3;opacity:.22;transition:opacity .35s,stroke .35s,stroke-width .35s;fill:none}
+.e.lin{stroke:#fff}
+.e.adm{stroke:var(--amber);stroke-dasharray:10 7}
+.e.con{stroke:var(--cyan);stroke-dasharray:2 7;stroke-linecap:round}
+.e.on{opacity:1;stroke-width:4.5;animation:flow 1s linear infinite}
+.conflict .e.on[data-id=adm1],.conflict .e.on[data-id=con1]{stroke:var(--pink)}
+.nb rect{fill:#121b2c;stroke:#33425f;stroke-width:1.5;transition:.3s}
+.nb text{fill:var(--ink);font:700 13px Manrope,sans-serif;text-anchor:middle}
+.nb.on rect{stroke:var(--nc);stroke-width:3;fill:#17223a}
+.conflict .nb[data-n=marko] rect{stroke:var(--pink);stroke-width:3;animation:pulse .6s ease-in-out infinite alternate}
+@keyframes pulse{to{fill:rgba(255,79,139,.25)}}
+.legend{display:flex;flex-direction:column;gap:5px;margin-top:4px;font-size:13px;color:#b6c1d2}
+.legend div{display:flex;align-items:center;gap:10px}
+.legend svg{width:42px;height:8px}
+.insight{flex:1;padding:20px 22px;border-radius:18px;background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--ic,var(--lime));position:relative}
+.insight .it{font-family:var(--mono);font-size:13px;letter-spacing:.16em;color:var(--ic,var(--lime));font-weight:700}
+.insight h4{font-family:var(--disp);font-size:21px;line-height:1.25;margin:8px 0 10px}
+.insight p{font-size:17px;line-height:1.5;color:#c6d0df}
+.insight.pop{animation:popin .5s cubic-bezier(.2,.8,.2,1)}
+@keyframes popin{from{opacity:.2;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+.dialog{grid-column:1;grid-row:2;position:relative;display:grid;grid-template-columns:120px 1fr;gap:20px;align-items:center;padding:16px 26px 16px 18px;border-radius:20px;background:linear-gradient(180deg,#111a2b,#0c1320);border:1px solid var(--line);cursor:pointer}
+.dialog .pt{width:116px;height:116px;border-radius:50%;overflow:hidden;border:3px solid var(--c,#33425f);background:#182238;transition:border-color .3s}
+.dialog .pt svg{width:100%;height:100%}
+.dialog .nm{font-family:var(--disp);font-weight:600;font-size:21px;color:var(--c,var(--ink))}
+.dialog .rl{font-family:var(--mono);font-size:13px;color:var(--muted);margin-left:10px;font-weight:400}
+.dialog .tx{font-size:23px;line-height:1.42;margin-top:8px;min-height:66px}
+.dialog .hint{position:absolute;right:20px;bottom:12px;font-family:var(--mono);font-size:12px;color:#5f6b80;display:flex;gap:14px;align-items:center}
+.dots{display:flex;gap:5px}
+.dots i{width:8px;height:8px;border-radius:50%;background:#2b3a58}
+.dots i.on{background:var(--lime)}
+.caret{display:inline-block;width:10px;height:22px;background:var(--lime);vertical-align:-3px;margin-left:3px;animation:car .8s steps(1) infinite}
+@keyframes car{50%{opacity:0}}
+.dialog.intro .tx{color:var(--muted)}
+
+/* ---------- 8. PROS/CONS ---------- */
+.pc{display:grid;grid-template-columns:1fr 360px 1fr;gap:34px;margin-top:30px;align-items:start}
+.pccol h3{font-family:var(--disp);font-size:26px;margin-bottom:14px}
+.arg{width:100%;text-align:left;padding:16px 20px;border-radius:14px;margin-bottom:12px;background:var(--panel);border:1px solid var(--line);color:var(--ink);cursor:pointer;transition:.3s;font-family:inherit;display:block}
+.arg h4{font-size:20px;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+.arg h4::after{content:"+";font-family:var(--mono);color:var(--muted);font-size:22px;transition:.3s}
+.arg .bd{max-height:0;overflow:hidden;transition:max-height .45s ease,margin .3s;font-size:16.5px;line-height:1.45;color:#c4cede}
+.arg .bd em{display:block;font-style:normal;font-family:var(--mono);font-size:13px;margin-top:6px}
+.arg.open .bd{max-height:140px;margin-top:8px}
+.arg.open h4::after{content:"✓"}
+.pro .arg.open{border-color:var(--green);background:rgba(59,227,160,.07)}
+.pro .arg.open h4::after,.pro .arg em{color:var(--green)}
+.con .arg.open{border-color:var(--pink);background:rgba(255,79,139,.07)}
+.con .arg.open h4::after,.con .arg em{color:var(--pink)}
+.scale svg{width:100%;height:440px;overflow:visible}
+.scale .cap{text-align:center;font-family:var(--disp);font-size:20px;line-height:1.35;margin-top:4px;min-height:56px}
+#beam{transition:transform .8s cubic-bezier(.3,1.5,.5,1)}
+.pan{transition:transform .8s cubic-bezier(.3,1.5,.5,1)}
+.wt{transition:opacity .4s,transform .5s cubic-bezier(.3,1.6,.5,1);opacity:0;transform:translateY(-30px)}
+.wt.on{opacity:1;transform:none}
+
+/* ---------- 9. END ---------- */
+.end{display:grid;grid-template-columns:1fr 600px;gap:70px;margin-top:40px}
+.formula{font-family:var(--disp);font-weight:800;font-size:46px;line-height:1.2}
+.formula .op{color:var(--muted);font-weight:400}
+.endp{font-size:25px;line-height:1.5;color:#c9d3e2;margin-top:26px}
+.when{display:flex;flex-direction:column;gap:14px}
+.wh{display:flex;gap:18px;padding:20px 22px;border-radius:16px;background:var(--panel);border:1px solid var(--line)}
+.wh b{font-family:var(--disp);font-size:34px;color:var(--lime);line-height:1}
+.wh p{font-size:20px;line-height:1.4}
+.thanks{font-family:var(--disp);font-weight:800;font-size:64px;margin-top:48px;background:linear-gradient(90deg,var(--amber),var(--lime),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.src{margin-top:18px;font-family:var(--mono);font-size:13.5px;color:var(--muted);line-height:1.6}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- 1 -->
+<section class="slide" data-notes="Привітання. Тема — матрична структура управління проєктами. План: коротка теорія → реальний український кейс → три сцени в лабораторії → плюси й мінуси. (~30 с)">
+  <div class="hero">
+    <div>
+      <div class="kick rv">Управління проєктами</div>
+      <h1 class="rv" style="--d:1"><span>Матричний</span><span class="outline">проєкт</span></h1>
+      <p class="lead rv" style="--d:2">Два керівники. Одна мета. Жодного хаосу — <span class="li">якщо є правила</span>.</p>
+      <div class="who rv" style="--d:3" contenteditable="true" spellcheck="false">Ваше ім’я · група</div>
+      <div class="keys rv" style="--d:4"><kbd>→</kbd> / <kbd>пробіл</kbd> далі · <kbd>F</kbd> повний екран · <kbd>N</kbd> нотатки</div>
+    </div>
+    <div class="hwrap rv" style="--d:2">
+      <div class="hlab top">ПРОЄКТИ →</div>
+      <div class="hlab left">← ВІДДІЛИ</div>
+      <div class="hgrid" id="hgrid"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-notes="Суть: виконавець має двох керівників. На схемі: жовта вертикаль — керівник відділу, блакитна горизонталь — керівник проєкту, а на перетині — виконавець. (~1,5 хв)">
+  <div class="kick rv">01 · Теорія</div>
+  <h2 class="rv" style="--d:1">Що таке матричний проєкт?</h2>
+  <div class="two">
+    <div>
+      <p class="def rv" style="--d:2">Це структура, де кожен виконавець одночасно підпорядковується <b>двом керівникам</b>: керівнику свого відділу і керівнику проєкту.</p>
+      <div class="axis">
+        <div class="ax rv" style="--d:3"><i style="background:var(--amber)"></i><div><h4 class="am">Вертикаль · функціональний керівник</h4><p>Люди, кваліфікація, ресурси, правила відділу. Фахівець «живе» у своєму відділі.</p></div></div>
+        <div class="ax rv" style="--d:4"><i style="background:var(--cyan)"></i><div><h4 class="cy">Горизонталь · керівник проєкту</h4><p>Результат, терміни, зміст роботи. Збирає людей з різних відділів у тимчасову команду.</p></div></div>
+      </div>
+      <p class="hist rv" style="--d:5">Звідки: 1950–60-ті, великі оборонні та аерокосмічні програми США. NASA — один із перших.</p>
+    </div>
+    <div class="cross rv" style="--d:3">
+        <svg viewBox="0 0 760 520" class="crl">
+          <line class="fl am-l" x1="430" y1="70" x2="430" y2="262"/><line class="fl am-l dim" x1="430" y1="262" x2="430" y2="500"/>
+          <line class="fl cy-l" x1="200" y1="262" x2="430" y2="262"/><line class="fl cy-l dim" x1="430" y1="262" x2="740" y2="262"/>
+        </svg>
+        <div class="cnode am-n" style="left:430px;top:0"><b>Керівник відділу</b><span>люди · кваліфікація · ресурси</span></div>
+        <div class="cnode cy-n" style="left:100px;top:226px"><b>Керівник проєкту</b><span>результат · терміни · зміст</span></div>
+        <div class="ccat" id="crossCat"></div>
+        <div class="ccap">Виконавець<br><span>два керівники — одна людина</span></div>
+        <div class="cend" style="left:448px;bottom:4px;color:var(--amber)">↓ вертикаль · відділ</div>
+        <div class="cend" style="right:0;top:278px;color:var(--cyan)">горизонталь · проєкт →</div>
+      </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-notes="Три типи матриці — за тим, у кого більше влади. Рухаю повзунок. Наш кейс ближче до збалансованої: повноваження поділені за типом питань. (~1 хв)">
+  <div class="kick rv">02 · Теорія</div>
+  <h2 class="rv" style="--d:1">Хто головніший? <span class="muted">Три типи матриці</span></h2>
+  <div class="types">
+    <div>
+      <div class="tcard rv" style="--d:2" id="tcard"><h3 id="tname">Збалансована</h3><p id="tdesc"></p></div>
+      <p class="tnote rv" style="--d:3">Слабка матриця не «гірша» за сильну — тип обирають під конкретний проєкт і організацію.</p>
+    </div>
+    <div class="rv" style="--d:2">
+      <div class="bars">
+        <div class="bar f"><div class="v am" id="vf">50%</div><div class="b" id="bf"></div></div>
+        <div class="bar p"><div class="v cy" id="vp">50%</div><div class="b" id="bp"></div></div>
+      </div>
+      <div class="blabels"><div class="am">Функціональний<br>керівник</div><div class="cy">Менеджер<br>проєкту</div></div>
+      <div class="sl"><div class="casemark">★ кейс ДДАЕУ</div><input type="range" min="0" max="100" value="50" id="trange"></div>
+      <div class="zones"><span data-z="0">Слабка</span><span data-z="1">Збалансована</span><span data-z="2">Сильна</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-notes="Реальний кейс із дослідження О. і Л. Величко (2018). ДДАЕУ виграв конкурс МОН, тема про аграрні ринки та логістику, 2017–2019. Чотири робочі групи, кожна з партнером. Клікаю групи — підсвічується партнер. (~1 хв)">
+  <div class="kick rv">03 · Реальний кейс · Україна</div>
+  <h2 class="rv" style="--d:1">Науковий проєкт <span class="li">ДДАЕУ</span>, 2017–2019</h2>
+  <div class="case">
+    <div>
+      <div class="fact big rv" style="--d:2"><small>Тема гранту</small><p>«Управління розвитком аграрних ринків, аграрної та екологічної логістики в системі продовольчої безпеки»</p></div>
+      <div class="fact rv" style="--d:3"><small>Фінансування</small><p>Конкурс МОН України, державний бюджет</p></div>
+      <div class="fact rv" style="--d:4"><small>Команда</small><p>Науковці ДДАЕУ (Дніпро) + вчені з університетів Львова та Одеси</p></div>
+      <div class="fact rv" style="--d:5"><small>Структура</small><p>Модель матричного управління, розроблена авторами і <b class="li">перевірена на практиці</b></p></div>
+    </div>
+    <div class="net rv" style="--d:3">
+      <svg viewBox="0 0 760 390" id="netsvg">
+        <line class="ln" data-g="0" x1="430" y1="200" x2="250" y2="330"/>
+        <line class="ln" data-g="1" x1="430" y1="200" x2="610" y2="80"/>
+        <line class="ln" data-g="2" x1="430" y1="200" x2="120" y2="110"/>
+        <line class="ln" data-g="3" x1="430" y1="200" x2="640" y2="320"/>
+        <g class="nd on" data-g="hub"><circle cx="430" cy="200" r="58" style="fill:#1b2614;stroke:var(--lime);stroke-width:3"/><text x="430" y="196" text-anchor="middle">ДДАЕУ</text><text class="s" x="430" y="216" text-anchor="middle">Дніпро · головна</text></g>
+        <g class="nd" data-g="0"><circle cx="250" cy="330" r="34"/><text x="250" y="384" text-anchor="middle">Науковий центр МГУ · Одеса</text><text class="lt" x="250" y="337" text-anchor="middle">А</text></g>
+        <g class="nd" data-g="1"><circle cx="610" cy="80" r="34"/><text x="610" y="22" text-anchor="middle">Регіональний інноваційний</text><text x="610" y="40" text-anchor="middle">центр агротехнологій</text><text class="lt" x="610" y="87" text-anchor="middle">Б</text></g>
+        <g class="nd" data-g="2"><circle cx="120" cy="110" r="34"/><text x="120" y="62" text-anchor="middle">Науковий центр ЛНАУ · Львів</text><text class="lt" x="120" y="117" text-anchor="middle">В</text></g>
+        <g class="nd" data-g="3"><circle cx="640" cy="320" r="34"/><text x="640" y="370" text-anchor="middle">Регіональний центр</text><text x="640" y="388" text-anchor="middle">натурального агровиробництва</text><text class="lt" x="640" y="327" text-anchor="middle">Г</text></g>
+      </svg>
+      <div class="groups">
+        <button class="grp" data-g="0"><b>A</b>Світові продовольчі ринки</button>
+        <button class="grp" data-g="1"><b>Б</b>Логістичні системи в агробізнесі</button>
+        <button class="grp" data-g="2"><b>В</b>Інституційний розвиток агрологістики</button>
+        <button class="grp" data-g="3"><b>Г</b>«Зелена» логістика</button>
+      </div>
+    </div>
+  </div>
+  <div class="foot">Джерело: Velychko O., Velychko L. (2018). Problems and Perspectives in Management, 16(1), 133–144</div>
+</section>
+
+<!-- 5 -->
+<section class="slide scene" data-scene="s1" data-notes="Сцена 1. Марко — новий учасник. Звертаю увагу на схему праворуч: білі лінії — лінійне підпорядкування, жовті пунктирні — організаційні питання, блакитні точкові — змістовні. Вони перетинаються на виконавцеві. (~1,5 хв)">
+  <div class="shead"><div><div class="kick rv">Сцена 1 / 3 · Як це працює</div><h2 class="rv" style="--d:1">Перший день у матриці</h2></div></div>
+  <div class="sgrid rv" style="--d:2"></div>
+  <div class="foot">Персонажі-коти вигадані · структура управління — за моделлю з дослідження ДДАЕУ</div>
+</section>
+
+<!-- 6 -->
+<section class="slide scene" data-scene="s2" data-notes="Сцена 2 — недоліки. Два керівники ставлять дедлайн на той самий день: конфлікт пріоритетів. Плюс довші погодження. Розв'язання: арбітр нагорі та чіткі правила. (~1,5 хв)">
+  <div class="shead"><div><div class="kick rv" style="color:var(--pink)">Сцена 2 / 3 · Недоліки</div><h2 class="rv" style="--d:1">Коли обидва кажуть «до п’ятниці»</h2></div></div>
+  <div class="sgrid rv" style="--d:2"></div>
+  <div class="foot">Персонажі-коти вигадані · структура управління — за моделлю з дослідження ДДАЕУ</div>
+</section>
+
+<!-- 7 -->
+<section class="slide scene" data-scene="s3" data-notes="Сцена 3 — переваги. Партнерка з Одеси підключається без переведення в штат, ротація науковців, фокус на науці. Результати реального проєкту — публікації Scopus/WoS, монографії, дисертації, патенти, ріст рейтингів. (~1,5 хв)">
+  <div class="shead"><div><div class="kick rv" style="color:var(--green)">Сцена 3 / 3 · Переваги</div><h2 class="rv" style="--d:1">Сила мережі</h2></div></div>
+  <div class="sgrid rv" style="--d:2"></div>
+  <div class="foot">Персонажі-коти вигадані · результати — з дослідження Величко &amp; Величко (2018)</div>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-notes="Відкриваю аргументи по черзі — терези хитаються. Коли відкриті всі — баланс. Висновок: матриця працює, коли є правила. (~1 хв)">
+  <div class="kick rv">04 · Підсумок</div>
+  <h2 class="rv" style="--d:1">Зважимо: <span class="gr">плюси</span> vs <span class="pk">мінуси</span></h2>
+  <div class="pc">
+    <div class="pccol pro rv" style="--d:2"><h3 class="gr">Переваги</h3><div id="pros"></div></div>
+    <div class="scale rv" style="--d:3">
+      <svg viewBox="0 0 360 440">
+        <defs><linearGradient id="pole" x1="0" x2="1"><stop offset="0" stop-color="#2b3a58"/><stop offset=".5" stop-color="#4a5c80"/><stop offset="1" stop-color="#2b3a58"/></linearGradient></defs>
+        <rect x="172" y="90" width="16" height="300" rx="6" fill="url(#pole)"/>
+        <path d="M110 420 Q180 370 250 420Z" fill="#2b3a58"/>
+        <g id="beam" style="transform-origin:180px 90px"><rect x="35" y="84" width="290" height="12" rx="6" fill="#d9e2ef"/></g>
+        <circle cx="180" cy="90" r="14" fill="var(--lime)"/>
+        <g class="pan" id="panL"><line x1="0" y1="0" x2="-48" y2="130" stroke="#8b97ab" stroke-width="2"/><line x1="0" y1="0" x2="48" y2="130" stroke="#8b97ab" stroke-width="2"/><path d="M-62 130 Q0 168 62 130Z" fill="var(--green)" opacity=".9"/><g id="wL"></g></g>
+        <g class="pan" id="panR"><line x1="0" y1="0" x2="-48" y2="130" stroke="#8b97ab" stroke-width="2"/><line x1="0" y1="0" x2="48" y2="130" stroke="#8b97ab" stroke-width="2"/><path d="M-62 130 Q0 168 62 130Z" fill="var(--pink)" opacity=".9"/><g id="wR"></g></g>
+      </svg>
+      <div class="cap" id="scap">Відкривайте аргументи 👆</div>
+    </div>
+    <div class="pccol con rv" style="--d:4"><h3 class="pk">Недоліки</h3><div id="cons"></div></div>
+  </div>
+</section>
+
+<!-- 9 -->
+<section class="slide" data-notes="Головна думка: матриця — це дві лінії управління з чітко розділеними повноваженнями. Коли її обирати. Джерело. Дякую, готовий(а) до питань. (~30 с)">
+  <div class="kick rv">05 · Висновок</div>
+  <div class="end">
+    <div>
+      <div class="formula rv" style="--d:1"><span class="am">2 керівники</span> <span class="op">×</span><br><span class="li">чіткі правила</span> <span class="op">→</span><br><span class="cy">1 мета</span></div>
+      <p class="endp rv" style="--d:2">Матриця — це не хаос із двома начальниками. Це дві лінії управління з <b>розділеними повноваженнями</b>, які перетинаються на виконавцеві.</p>
+      <div class="thanks rv" style="--d:3">Дякую! Питання?</div>
+    </div>
+    <div>
+      <h3 class="rv" style="--d:2;font-family:var(--disp);font-size:26px;margin-bottom:16px">Коли обирати матрицю</h3>
+      <div class="when">
+        <div class="wh rv" style="--d:3"><b>1</b><p>Складний міждисциплінарний проєкт, де потрібні фахівці з різних підрозділів</p></div>
+        <div class="wh rv" style="--d:4"><b>2</b><p>Експертів треба ділити між проєктами або залучати ззовні — без зміни штату</p></div>
+        <div class="wh rv" style="--d:5"><b>3</b><p>Є арбітр для конфліктів і прописаний розподіл повноважень</p></div>
+      </div>
+      <p class="src rv" style="--d:6">Джерело кейсу: Velychko, O., &amp; Velychko, L. (2018). Matrix structures in management of quality of educational and scientific work of Ukrainian universities. <i>Problems and Perspectives in Management, 16</i>(1), 133–144. doi:10.21511/ppm.16(1).2018.13</p>
+    </div>
+  </div>
+</section>
+
+<div id="notes"><b>НОТАТКИ ДОПОВІДАЧА</b><span id="ntext"></span></div>
+<div id="prog"></div>
+<div id="hud"><button id="bprev" title="Назад">←</button><div id="count">01 / 09</div><button id="bnext" title="Далі">→</button><button id="bfs" title="Повний екран">⛶</button></div>
+</div>
+
+<script>
+/* ================= AVATARS (CATS) ================= */
+const AV={
+  viktor:{fur:'#9aa3b0',dark:'#6b7482',muzzle:'#e9ecf1',eye:'#d8ec6a',glasses:true,beard:true,shirt:'#3a4a6b',accent:'#ffffff',prop:'mug',paw:'#9aa3b0'},
+  iryna:{fur:'#2b2832',dark:'#18161c',muzzle:'#3b3742',eye:'#ffb22e',bow:'#ffb22e',shirt:'#ffb22e',accent:'#ffb22e',prop:'folder',paw:'#2b2832',ear:.45},
+  andriy:{fur:'#e08a3c',dark:'#b2611e',muzzle:'#f7d6ae',eye:'#7ad36b',stripes:true,shirt:'#1f6f86',accent:'#38e1ff',prop:'flask',paw:'#e08a3c'},
+  marko:{fur:'#202028',dark:'#111116',muzzle:'#f1f1f4',eye:'#d9f25a',tuft:true,shirt:'#c6ff3d',accent:'#c6ff3d',prop:'laptop',hoodie:true,paw:'#f1f1f4',ear:.5},
+  sofia:{fur:'#f4f0ea',dark:'#cfc6ba',muzzle:'#ffffff',eye:'#6ab7ff',calico:true,glasses:true,shirt:'#b48cff',accent:'#b48cff',paw:'#f4f0ea'}
+};
+function avatar(k,vb){
+  const o=AV[k];
+  const laptop=o.prop==='laptop';
+  const lh=laptop?[36,150]:[26,166], rh=laptop?[84,150]:[94,166];
+  let prop='';
+  if(o.prop==='folder')prop=`<rect x="86" y="136" width="24" height="32" rx="3" fill="#ffb22e" transform="rotate(10 98 152)"/><rect x="90" y="142" width="14" height="2.5" fill="#7a4e00" transform="rotate(10 98 152)"/>`;
+  if(o.prop==='flask')prop=`<path d="M94 128 h9 v12 l10 22 q2 6 -4 6 h-21 q-6 0 -4 -6 l10 -22z" fill="rgba(56,225,255,.18)" stroke="#bff4ff" stroke-width="1.5"/><path d="M88 156 h21 l3 7 q1 5 -4 5 h-19 q-5 0 -4 -5z" fill="#38e1ff"/><circle cx="99" cy="150" r="2" fill="#bff4ff" class="bub" style="animation-duration:1.8s"/>`;
+  if(o.prop==='mug')prop=`<rect x="88" y="152" width="15" height="17" rx="3" fill="#f5f7fb"/><path d="M103 156 q7 0 7 5 q0 5 -7 5" stroke="#f5f7fb" stroke-width="2.5" fill="none"/><path d="M93 146 q-3 -5 0 -9 M98 146 q-3 -5 0 -9" stroke="rgba(255,255,255,.4)" stroke-width="1.6" fill="none"/>`;
+  if(laptop)prop=`<rect x="32" y="138" width="56" height="36" rx="4" fill="#2b3346" stroke="#566179" stroke-width="1.5"/><path d="M55 152 l-3 -5 l4 2 l4 -2 l4 2 l4 -2 l-3 5 q-5 6 -10 0z" fill="#c6ff3d" opacity=".9"/>`;
+  const eye=(x)=>`<ellipse cx="${x}" cy="61" rx="5.6" ry="6" fill="${o.eye}"/><ellipse cx="${x}" cy="61" rx="1.9" ry="4.8" fill="#101014"/><circle cx="${x+1.8}" cy="58.6" r="1.5" fill="#fff"/>`;
+  return `<svg class="av" viewBox="${vb||'0 0 120 210'}" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="60" cy="204" rx="36" ry="5" fill="rgba(0,0,0,.4)"/>
+  <path d="M84 172 Q114 166 108 134 Q105 120 112 112" stroke="${o.fur}" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <path d="M108 122 Q106 116 112 112" stroke="${o.dark}" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <rect x="45" y="168" width="12" height="34" rx="6" fill="#252c3c"/><rect x="63" y="168" width="12" height="34" rx="6" fill="#252c3c"/>
+  <ellipse cx="51" cy="201" rx="9" ry="5" fill="${o.paw}"/><ellipse cx="69" cy="201" rx="9" ry="5" fill="${o.paw}"/>
+  <path d="M28 108 Q60 92 92 108 L98 178 Q60 186 22 178Z" fill="#e9eff7"/>
+  ${o.hoodie?`<path d="M42 102 Q60 116 78 102 Q74 92 60 92 Q46 92 42 102Z" fill="${o.shirt}"/>`:''}
+  <path d="M48 100 L60 134 L72 100 Q60 96 48 100Z" fill="${o.shirt}"/>
+  <path d="M48 100 L58 136 L51 142 L40 108Z M72 100 L62 136 L69 142 L80 108Z" fill="#d6dfeb"/>
+  <rect x="72" y="118" width="14" height="9" rx="2" fill="${o.accent}"/>
+  <rect x="52" y="80" width="16" height="20" rx="6" fill="${o.fur}"/>
+  <path d="M36 52 L39 20 L60 40Z" fill="${o.fur}"/><path d="M84 52 L81 20 L60 40Z" fill="${o.fur}"/>
+  <path d="M41 46 L42 28 L54 40Z M79 46 L78 28 L66 40Z" fill="#f4a7b5" opacity="${o.ear||.85}"/>
+  ${o.calico?`<path d="M36 52 L39 20 L56 37 Q44 40 38 52Z" fill="#d9772e"/>`:''}
+  <ellipse cx="60" cy="63" rx="28" ry="25" fill="${o.fur}"/>
+  ${o.calico?`<path d="M38 50 Q46 40 58 41 Q52 52 40 60Z" fill="#d9772e"/><path d="M70 41 Q82 42 86 56 Q78 52 72 47Z" fill="#3a3036"/>`:''}
+  ${o.stripes?`<path d="M60 39 v9 M51 41 l2 7 M69 41 l-2 7 M33 62 h7 M34 68 h6 M87 62 h-7 M86 68 h-6" stroke="${o.dark}" stroke-width="3" stroke-linecap="round"/>`:''}
+  ${o.tuft?`<path d="M54 40 Q56 28 60 36 Q63 26 66 40 Q60 36 54 40Z" fill="${o.fur}"/>`:''}
+  <ellipse cx="60" cy="75" rx="13" ry="9" fill="${o.muzzle}"/>
+  ${o.beard?`<path d="M48 79 Q60 96 72 79 Q60 87 48 79Z" fill="#f4f6f9"/>`:''}
+  ${o.bow?`<g transform="translate(76 33) rotate(20)"><path d="M0 0 L-9 -6 L-9 6Z M0 0 L9 -6 L9 6Z" fill="${o.bow}"/><circle r="2.6" fill="#c97f00"/></g>`:''}
+  <g class="eyes">${eye(49)}${eye(71)}</g>
+  ${o.glasses?`<g fill="none" stroke="#1d2230" stroke-width="2"><circle cx="49" cy="61" r="8.5"/><circle cx="71" cy="61" r="8.5"/><path d="M57.5 61 h5"/></g>`:''}
+  <path d="M56.5 70 h7 l-3.5 4z" fill="#f28da0"/>
+  <path class="m1" d="M60 74 q-2.5 4 -6 1.6 M60 74 q2.5 4 6 1.6" stroke="#4a2a2e" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <ellipse class="m2" cx="60" cy="78" rx="3.8" ry="3" fill="#8a2f3a"/>
+  <path d="M46 73 L28 69 M46 77 L29 79 M74 73 L92 69 M74 77 L91 79" stroke="rgba(255,255,255,.55)" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M31 112 Q20 140 ${lh[0]} ${lh[1]-2}" stroke="#dfe6ef" stroke-width="13" fill="none" stroke-linecap="round"/>
+  <path d="M89 112 Q100 140 ${rh[0]} ${rh[1]-2}" stroke="#dfe6ef" stroke-width="13" fill="none" stroke-linecap="round"/>
+  ${prop}
+  <circle cx="${lh[0]}" cy="${lh[1]}" r="7" fill="${o.paw}"/><circle cx="${rh[0]}" cy="${rh[1]}" r="7" fill="${o.paw}"/>
+  </svg>`;
+}
+const CH={
+  viktor:{name:'Віктор Степанович',role:'керівник проєкту',c:'#ffffff'},
+  iryna:{name:'Ірина',role:'координатор · організаційні питання',c:'#ffb22e'},
+  andriy:{name:'Андрій',role:'керівник робочої групи · зміст',c:'#38e1ff'},
+  marko:{name:'Марко',role:'аспірант ДДАЕУ · виконавець',c:'#c6ff3d'},
+  sofia:{name:'Софія',role:'науковий центр МГУ · Одеса',c:'#b48cff'}
+};
+
+/* ================= LAB BACKGROUND ================= */
+function flask(x,b,t,col,d){
+  let s='';
+  if(t==='erl'){s+=`<path d="M${x} ${b} L${x+16} ${b-34} V${b-52} H${x+28} V${b-34} L${x+44} ${b}Z" fill="rgba(255,255,255,.04)" stroke="#8fa3c4" stroke-width="2"/><path d="M${x+3} ${b-2} L${x+9} ${b-16} H${x+35} L${x+41} ${b-2}Z" fill="${col}" opacity=".85"/>`}
+  if(t==='rnd'){s+=`<rect x="${x+14}" y="${b-62}" width="12" height="24" fill="rgba(255,255,255,.04)" stroke="#8fa3c4" stroke-width="2"/><circle cx="${x+20}" cy="${b-20}" r="20" fill="rgba(255,255,255,.04)" stroke="#8fa3c4" stroke-width="2"/><path d="M${x+1} ${b-18} A19 19 0 0 0 ${x+39} ${b-18}Z" fill="${col}" opacity=".85"/>`}
+  if(t==='tube'){s+=`<rect x="${x}" y="${b-56}" width="14" height="56" rx="7" fill="rgba(255,255,255,.04)" stroke="#8fa3c4" stroke-width="2"/><rect x="${x+2}" y="${b-30}" width="10" height="28" rx="5" fill="${col}" opacity=".85"/>`}
+  const cx=t==='tube'?x+7:(t==='rnd'?x+20:x+22);
+  s+=`<ellipse cx="${cx}" cy="${b+2}" rx="26" ry="5" fill="${col}" opacity=".25" filter="url(#bl)"/>`;
+  for(let i=0;i<3;i++)s+=`<circle class="bub" cx="${cx-5+i*5}" cy="${b-10}" r="${2+i%2}" fill="${col}" style="animation-delay:${(d+i*0.8).toFixed(1)}s"/>`;
+  return s;
+}
+function labSVG(){
+  let shelves='';
+  [['erl',0,'#38e1ff'],['rnd',62,'#ffb22e'],['tube',120,'#c6ff3d'],['tube',142,'#ff4f8b'],['erl',176,'#b48cff'],['rnd',232,'#3be3a0']].forEach((f,i)=>shelves+=flask(770+f[1],148,f[0],f[2],i*.4));
+  [['tube',0,'#ffb22e'],['tube',22,'#38e1ff'],['tube',44,'#b48cff'],['erl',80,'#c6ff3d'],['rnd',140,'#ff4f8b'],['erl',196,'#38e1ff']].forEach((f,i)=>shelves+=flask(770+f[1],258,f[0],f[2],i*.5+.2));
+  let wb='';
+  [80,118,156].forEach(y=>wb+=`<line x1="80" y1="${y}" x2="310" y2="${y}" stroke="#ffb22e" stroke-width="2.5" opacity=".8"/>`);
+  [130,180,230,280].forEach(x=>wb+=`<line x1="${x}" y1="60" x2="${x}" y2="176" stroke="#38e1ff" stroke-width="2.5" stroke-dasharray="3 6" stroke-linecap="round"/>`);
+  [80,118,156].forEach(y=>[130,180,230,280].forEach(x=>wb+=`<circle cx="${x}" cy="${y}" r="4.5" fill="#c6ff3d"/>`));
+  ['Дніпро','Львів','Одеса'].forEach((t,i)=>wb+=`<text class="wb s" x="18" y="${84+i*38}">${t}</text>`);
+  ['А','Б','В','Г'].forEach((t,i)=>wb+=`<text class="wb" x="${125+i*50}" y="52" style="fill:#38e1ff">${t}</text>`);
+  const lamp=x=>`<rect x="${x-2}" y="0" width="4" height="18" fill="#2a3550"/><path d="M${x-20} 18h40l-6 10h-28z" fill="#2a3550"/><polygon points="${x-14},28 ${x+14},28 ${x+150},330 ${x-150},330" fill="url(#cone)"/>`;
+  let cab='';for(let x=180;x<1080;x+=180)cab+=`<line x1="${x}" y1="352" x2="${x}" y2="420" stroke="#1d2740" stroke-width="2"/>`;
+  let fl='';for(let i=-6;i<=6;i++)fl+=`<line x1="${540+i*60}" y1="420" x2="${540+i*160}" y2="500" stroke="rgba(255,255,255,.04)"/>`;
+  return `<svg viewBox="0 0 1080 500" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+   <linearGradient id="gw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#121f36"/><stop offset="1" stop-color="#0b1322"/></linearGradient>
+   <pattern id="tiles" width="54" height="54" patternUnits="userSpaceOnUse"><path d="M54 0H0V54" fill="none" stroke="rgba(255,255,255,.035)"/></pattern>
+   <linearGradient id="cone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(198,255,61,.13)"/><stop offset="1" stop-color="rgba(198,255,61,0)"/></linearGradient>
+   <filter id="bl"><feGaussianBlur stdDeviation="4"/></filter>
+  </defs>
+  <rect width="1080" height="500" fill="url(#gw)"/><rect width="1080" height="420" fill="url(#tiles)"/>
+  ${lamp(220)}${lamp(880)}
+  <g transform="translate(36 44)"><rect width="336" height="214" rx="10" fill="#0c1525" stroke="#2b3a58" stroke-width="3"/>
+   <text class="wb" x="18" y="28" style="fill:#c6ff3d;font-weight:700">МАТРИЦЯ ПРОЄКТУ</text>${wb}
+   <text class="wb s" x="18" y="200">грант МОН · 2017–2019</text></g>
+  <rect x="760" y="148" width="290" height="8" rx="3" fill="#2a3550"/><rect x="760" y="258" width="290" height="8" rx="3" fill="#2a3550"/>
+  ${shelves}
+  <rect x="0" y="330" width="1080" height="22" fill="#1d2940"/><rect x="0" y="330" width="1080" height="3" fill="#33456a"/>
+  <rect x="0" y="352" width="1080" height="68" fill="#111a2a"/>${cab}
+  <rect x="0" y="420" width="1080" height="80" fill="#0a0f19"/>${fl}
+  <g transform="translate(60 250)"><rect x="0" y="72" width="60" height="10" rx="3" fill="#33456a"/><path d="M40 72 V30 Q40 14 24 14" stroke="#4a5c80" stroke-width="9" fill="none" stroke-linecap="round"/><rect x="14" y="0" width="16" height="40" rx="4" fill="#5a6d93" transform="rotate(-18 22 20)"/><rect x="6" y="52" width="38" height="5" rx="2" fill="#4a5c80"/></g>
+  <g transform="translate(470 262)"><rect x="0" y="0" width="120" height="66" rx="5" fill="#1b2436" stroke="#3a4866" stroke-width="2"/><rect x="6" y="6" width="108" height="54" rx="3" fill="#06101c"/><polyline points="14,48 34,38 50,42 68,24 86,30 104,14" stroke="#38e1ff" stroke-width="2.5" fill="none"/><rect x="-10" y="66" width="140" height="6" rx="3" fill="#3a4866"/></g>
+  <g transform="translate(380 300)"><rect width="26" height="30" rx="4" fill="#e9eff7"/><path d="M26 7 q9 0 9 8 q0 8 -9 8" stroke="#e9eff7" stroke-width="3" fill="none"/></g>
+  <g transform="translate(990 270)"><rect x="6" y="36" width="34" height="26" rx="4" fill="#2a3550"/><path d="M23 36 Q8 14 2 18 Q16 22 23 36 Q24 8 36 2 Q28 18 23 36 Q38 18 46 22 Q32 26 23 36" fill="#3be3a0"/></g>
+  </svg>`;
+}
+
+/* ================= ORG CHART ================= */
+function chartSVG(){
+  const box=(n,x,y,w,t,c)=>`<g class="nb" data-n="${n}" style="--nc:${c}"><rect x="${x-w/2}" y="${y-17}" width="${w}" height="34" rx="9"/><text x="${x}" y="${y+4.5}">${t}</text></g>`;
+  return `<svg viewBox="0 0 400 260">
+   <line class="e lin" x1="200" y1="44" x2="100" y2="108"/><line class="e lin" x1="200" y1="44" x2="300" y2="108"/>
+   <line class="e adm" data-id="adm1" x1="100" y1="142" x2="100" y2="214"/><line class="e adm" data-id="adm2" x1="100" y1="142" x2="300" y2="214"/>
+   <line class="e con" data-id="con1" x1="300" y1="142" x2="100" y2="214"/><line class="e con" data-id="con2" x1="300" y1="142" x2="300" y2="214"/>
+   ${box('viktor',200,27,200,'Керівник проєкту','#ffffff')}
+   ${box('iryna',100,125,170,'Координатор','#ffb22e')}
+   ${box('andriy',300,125,170,'Керівник групи','#38e1ff')}
+   ${box('marko',100,231,170,'Науковець ДДАЕУ','#c6ff3d')}
+   ${box('sofia',300,231,170,'Партнер · Одеса','#b48cff')}
+  </svg>`;
+}
+const LEG=`<div class="legend">
+ <div><svg viewBox="0 0 42 8"><line x1="0" y1="4" x2="42" y2="4" stroke="#fff" stroke-width="3"/></svg>лінійне — з усіх питань проєкту</div>
+ <div><svg viewBox="0 0 42 8"><line x1="0" y1="4" x2="42" y2="4" stroke="#ffb22e" stroke-width="3" stroke-dasharray="8 5"/></svg>організаційно-адміністративне</div>
+ <div><svg viewBox="0 0 42 8"><line x1="0" y1="4" x2="42" y2="4" stroke="#38e1ff" stroke-width="3" stroke-dasharray="2 6" stroke-linecap="round"/></svg>змістовне (напрям досліджень)</div></div>`;
+
+/* ================= SCRIPTS ================= */
+const IC={core:['var(--lime)','СУТЬ'],plus:['var(--green)','ПЕРЕВАГА'],minus:['var(--pink)','НЕДОЛІК'],fix:['#ffffff','РІШЕННЯ']};
+const SCENES={
+ s1:{cast:[['marko',6],['viktor',28],['iryna',50],['andriy',72]],monitor:'dash',
+  intro:{t:'core',h:'Ситуація',p:'Аспірант ДДАЕУ стає учасником тимчасового наукового проєкту — але не йде зі своєї кафедри.'},
+  steps:[
+   {w:'marko',x:'Добрий день! Я Марко, аспірант кафедри. Мене включили в грантовий проєкт… А кому я тепер звітую?',l:[]},
+   {w:'viktor',x:'Вітаю в команді! Ми виграли конкурс МОН — фінансування з держбюджету. Я відповідаю за проєкт у цілому.',l:['lin'],i:{t:'core',h:'Лінійне підпорядкування',p:'Керівник проєкту стоїть над усіма. Його рішення стосуються всіх питань проєкту.'}},
+   {w:'iryna',x:'Я — координатор і відповідальний виконавець. До мене все організаційне: ресурси, звітність, підвищення кваліфікації і стимулювання.',l:['adm'],i:{t:'core',h:'Лінія 1 · «як і чим»',p:'Організаційно-адміністративні питання: забезпечення ресурсами, звіти, кваліфікація, мотивація.'}},
+   {w:'andriy',x:'А я керую робочою групою «Світові продовольчі ринки». Зі мною — зміст: гіпотези, методика, дані, статті.',l:['con'],i:{t:'core',h:'Лінія 2 · «що саме»',p:'Змістовні питання конкретного напряму досліджень — їх веде керівник робочої групи.'}},
+   {w:'marko',x:'Тобто в мене два керівники — і кожен відповідає за своє?',l:['adm1','con1']},
+   {w:'viktor',x:'Саме так. Компетенції чітко розділені — ніхто не лізе на чужу територію. Це і є матриця.',l:['lin','adm','con'],i:{t:'core',h:'Це і є матриця',p:'У кожного виконавця два менеджери зі строго розділеною компетенцією. Лінії перетинаються на людині.'}}
+  ]},
+ s2:{cast:[['iryna',6],['marko',30],['andriy',54],['viktor',76]],monitor:'dash',
+  intro:{t:'core',h:'Звичайний вівторок',p:'Обидва керівники мають рацію — кожен у своїй зоні. Але в Марка лише один тиждень.'},
+  steps:[
+   {w:'iryna',x:'Марко, до п’ятниці потрібен проміжний звіт для МОН — усі твої показники в таблиці.',l:['adm1']},
+   {w:'andriy',x:'Марко, до п’ятниці доробляємо статтю для Scopus! Дедлайн журналу ніхто не посуне.',l:['con1']},
+   {w:'marko',x:'Стоп… Обидва до п’ятниці?! Мені що, розірватися?',l:['adm1','con1'],cf:1,i:{t:'minus',h:'Подвійне підпорядкування',p:'Два центри впливу → конфлікт пріоритетів. Виконавець опиняється між двох вогнів.'}},
+   {w:'andriy',x:'І ще: щоб купити платний датасет, мені треба погодити це з Іриною, а їй — з бухгалтерією…',l:['con','adm'],i:{t:'minus',h:'Повільніші рішення',p:'Більше погоджень між лініями управління — рішення ухвалюються довше.'}},
+   {w:'viktor',x:'Для цього в нас правила. Звіт збирає координатор — від Марка лише його цифри, дві години. Решта тижня — стаття.',l:['lin','adm','con'],i:{t:'fix',h:'Арбітр + правила',p:'Конфлікти в матриці неминучі. Їх гасить чіткий розподіл повноважень і керівник нагорі.'}},
+   {w:'iryna',x:'А датасет погоджу сьогодні. Зате бюджет під контролем, і Андрій не тоне в папірцях.',l:['adm'],i:{t:'plus',h:'Противаги',p:'Менеджери врівноважують одне одного — за висновком дослідження, це послаблює бюрократію.'}}
+  ]},
+ s3:{cast:[['andriy',6],['iryna',28],['marko',72]],monitor:'call',
+  intro:{t:'core',h:'Через рік',p:'Проєкт об’єднує науковців Дніпра, Львова й Одеси. Подивимось, що це дає.'},
+  steps:[
+   {w:'sofia',x:'Привіт з Одеси! Наш науковий центр у МГУ має дані про світові продовольчі ринки — підключаємось до вашої групи.',l:['adm2','con2'],i:{t:'plus',h:'Зовнішні експерти',p:'Вчених з інших університетів залучають без переведення в штат — партнери з Одеси та Львова.'}},
+   {w:'andriy',x:'Чудово! Змістовні завдання ставлю я, а Ірина оформить усе організаційно.',l:['con2','adm2']},
+   {w:'iryna',x:'І новина: наступного року Марко ротується в групу логістичних систем — нові навички, свіжий погляд.',l:['adm1'],i:{t:'plus',h:'Розвиток людей',p:'Постійне залучення перспективних науковців і періодична ротація — практики, що спрацювали в проєкті.'}},
+   {w:'marko',x:'А головне — я займаюся наукою, а не бігаю з папірцями!',l:['con1'],i:{t:'plus',h:'Фокус на змісті',p:'Експерти не відволікаються на рутинний контроль і організаційні справи.'}},
+   {w:'andriy',x:'Проміжні підсумки: публікації в Scopus і Web of Science, монографії, захисти дисертацій, патенти, бізнес-угоди.',l:['lin','adm','con'],i:{t:'plus',h:'Результат',p:'Ефективність моделі перевірили експериментально — у реальному проєкті ДДАЕУ.'}},
+   {w:'iryna',x:'І світові рейтинги університетів-учасників зросли. Матриця спрацювала!',l:['lin','adm','con'],i:{t:'plus',h:'Конкурентоспроможність',p:'Університет посилив позиції на ринку дослідницьких послуг в аграрній та економічній сферах.'}}
+  ]}
+};
+
+class Scene{
+ constructor(el,cfg){
+  this.cfg=cfg;this.i=-1;this.timer=null;this.typing=false;
+  const g=el.querySelector('.sgrid');
+  g.innerHTML=`<div class="lab"><div class="labbg">${labSVG()}</div><div class="monitor"></div><div class="chars"></div></div>
+   <aside class="side"><div class="chartbox"><h5>СХЕМА ПІДПОРЯДКУВАННЯ</h5>${chartSVG()}${LEG}</div><div class="insight"></div></aside>
+   <div class="dialog"><div class="pt"></div><div><div class="nm"></div><div class="tx"></div></div><div class="hint"><div class="dots"></div><span>клік / → далі</span></div></div>`;
+  this.lab=g.querySelector('.lab');this.chars=g.querySelector('.chars');this.mon=g.querySelector('.monitor');
+  this.chart=g.querySelector('.chartbox');this.ins=g.querySelector('.insight');this.dlg=g.querySelector('.dialog');
+  cfg.cast.forEach(([k,x],n)=>{const d=document.createElement('div');d.className='char';d.dataset.k=k;d.style.left=x+'%';d.style.setProperty('--c',CH[k].c);d.style.setProperty('--bd',(n*.6)+'s');
+   d.innerHTML=avatar(k)+`<div class="tag">${CH[k].name}</div>`;this.chars.appendChild(d)});
+  if(cfg.monitor==='call'){this.mon.innerHTML=`<div class="mhead"><span><span class="live">●</span> LIVE · відеодзвінок</span><span>Одеса</span></div><div class="call">${avatar('sofia','4 8 112 128')}<div class="cn">Софія · МГУ</div></div>`}
+  else{this.mon.innerHTML=`<div class="mhead"><span>ПРОЄКТ · 2017–2019</span><span>4 групи</span></div><div class="mbars"><i style="animation-delay:0s"></i><i style="animation-delay:.7s"></i><i style="animation-delay:1.4s"></i><i style="animation-delay:.35s"></i></div><div class="mfoot">А · Б · В · Г — прогрес робочих груп</div>`}
+  g.querySelector('.dots').innerHTML=cfg.steps.map(()=>'<i></i>').join('');
+  this.lab.addEventListener('click',()=>next());this.dlg.addEventListener('click',()=>next());
+ }
+ setInsight(o){const[c,t]=IC[o.t];this.ins.style.setProperty('--ic',c);this.ins.innerHTML=`<div class="it">${t}</div><h4>${o.h}</h4><p>${o.p}</p>`;this.ins.classList.remove('pop');void this.ins.offsetWidth;this.ins.classList.add('pop')}
+ render(i,anim){
+  clearInterval(this.timer);this.typing=false;this.i=i;
+  const S=this.cfg.steps,st=S[i];
+  this.dlg.querySelectorAll('.dots i').forEach((d,n)=>d.classList.toggle('on',n<=i));
+  this.chars.querySelectorAll('.char').forEach(c=>c.classList.remove('sp','talk'));this.mon.classList.remove('sp','talk');
+  this.chart.querySelectorAll('.e').forEach(e=>e.classList.remove('on'));this.chart.querySelectorAll('.nb').forEach(n=>n.classList.remove('on'));
+  this.chart.classList.remove('conflict');
+  if(i<0){this.chars.classList.remove('has');this.dlg.classList.add('intro');this.dlg.style.removeProperty('--c');
+   this.dlg.querySelector('.pt').innerHTML='';this.dlg.querySelector('.nm').innerHTML='▶ Початок сцени';
+   this.dlg.querySelector('.tx').textContent='Натисніть, щоб персонажі заговорили';this.setInsight(this.cfg.intro);return}
+  this.dlg.classList.remove('intro');
+  const ch=CH[st.w];this.chars.classList.add('has');
+  const el=st.w==='sofia'?this.mon:this.chars.querySelector(`[data-k=${st.w}]`);el.classList.add('sp');
+  this.dlg.style.setProperty('--c',ch.c);
+  this.dlg.querySelector('.pt').innerHTML=avatar(st.w,'16 14 88 88');
+  this.dlg.querySelector('.nm').innerHTML=`${ch.name}<span class="rl">${ch.role}</span>`;
+  st.l.forEach(t=>this.chart.querySelectorAll(`.e.${t},.e[data-id=${t}]`).forEach(e=>e.classList.add('on')));
+  const nb=this.chart.querySelector(`.nb[data-n=${st.w}]`);if(nb)nb.classList.add('on');
+  if(st.cf)this.chart.classList.add('conflict');
+  let ins=this.cfg.intro;for(let k=i;k>=0;k--)if(S[k].i){ins=S[k].i;break}
+  if(anim&&(st.i||i===0))this.setInsight(ins);else if(!anim)this.setInsight(ins);
+  const tx=this.dlg.querySelector('.tx');
+  if(!anim){tx.textContent=st.x;return}
+  let n=0;this.typing=true;el.classList.add('talk');tx.innerHTML='<span class="caret"></span>';
+  this.timer=setInterval(()=>{n+=2;tx.innerHTML=st.x.slice(0,n)+'<span class="caret"></span>';
+   if(n>=st.x.length){this.finish()}},28);
+ }
+ finish(){clearInterval(this.timer);this.typing=false;const st=this.cfg.steps[this.i];this.dlg.querySelector('.tx').textContent=st.x;
+  this.chars.querySelectorAll('.char').forEach(c=>c.classList.remove('talk'));this.mon.classList.remove('talk')}
+ next(){if(this.typing){this.finish();return true}if(this.i<this.cfg.steps.length-1){this.render(this.i+1,true);return true}return false}
+ prev(){if(this.i>-1){this.render(this.i-1,false);return true}return false}
+}
+
+/* ================= NAVIGATION ================= */
+const stage=document.getElementById('stage');
+function fit(){const s=Math.min(innerWidth/1600,innerHeight/900);stage.style.transform=`translate(-50%,-50%) scale(${s})`}
+addEventListener('resize',fit);fit();
+const slides=[...document.querySelectorAll('.slide')];const scenes={};
+slides.forEach((s,i)=>{if(s.dataset.scene)scenes[i]=new Scene(s,SCENES[s.dataset.scene])});
+let cur=0;
+function go(n,dir){
+ if(n<0||n>=slides.length)return;cur=n;
+ slides.forEach((s,i)=>{s.classList.toggle('active',i===n);s.classList.toggle('past',i<n)});
+ if(scenes[n]){dir<0?scenes[n].render(scenes[n].cfg.steps.length-1,false):scenes[n].render(-1)}
+ document.getElementById('count').textContent=String(n+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');
+ document.getElementById('prog').style.width=(n/(slides.length-1)*100)+'%';
+ document.getElementById('ntext').textContent=slides[n].dataset.notes||'';
+}
+function next(){const s=scenes[cur];if(s&&s.next())return;go(cur+1,1)}
+function prev(){const s=scenes[cur];if(s&&s.prev())return;go(cur-1,-1)}
+function fs(){if(!document.fullscreenElement)document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();else document.exitFullscreen()}
+addEventListener('keydown',e=>{
+ const t=e.target;if(t.isContentEditable||(t.tagName==='INPUT'&&/Arrow/.test(e.key)))return;
+ if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();next()}
+ else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();prev()}
+ else if(e.key==='Home')go(0,1);else if(e.key==='End')go(slides.length-1,1);
+ else if(e.key==='f'||e.key==='F'||e.key==='а'||e.key==='А')fs();
+ else if(e.key==='n'||e.key==='N'||e.key==='т'||e.key==='Т')document.getElementById('notes').classList.toggle('on');
+});
+document.getElementById('bnext').onclick=next;document.getElementById('bprev').onclick=prev;document.getElementById('bfs').onclick=fs;
+let tx0=null;addEventListener('touchstart',e=>tx0=e.touches[0].clientX,{passive:true});
+addEventListener('touchend',e=>{if(tx0===null)return;const dx=e.changedTouches[0].clientX-tx0;if(Math.abs(dx)>60)(dx<0?next:prev)();tx0=null});
+
+/* ================= SLIDE 1: hero grid ================= */
+(()=>{const g=document.getElementById('hgrid');const person='<svg viewBox="0 0 24 24"><path d="M4 9 L5 2 L10 6 H14 L19 2 L20 9 Q22 20 12 21 Q2 20 4 9Z" fill="#0b0f17"/><circle cx="9" cy="12" r="1.4" fill="#c6ff3d"/><circle cx="15" cy="12" r="1.4" fill="#c6ff3d"/><path d="M11 15 h2 l-1 1.2z" fill="#c6ff3d"/></svg>';
+ for(let r=0;r<5;r++)for(let c=0;c<7;c++){const d=document.createElement('div');d.className='hcell';d.dataset.r=r;d.dataset.c=c;d.innerHTML=person;g.appendChild(d)}
+ const cells=[...g.children];
+ function tick(){const r=Math.floor(Math.random()*5),c=Math.floor(Math.random()*7);
+  cells.forEach(d=>{const R=+d.dataset.r===r,C=+d.dataset.c===c;d.classList.toggle('r',R&&!C);d.classList.toggle('c',C&&!R);d.classList.toggle('x',R&&C)})}
+ tick();setInterval(tick,1700)})();
+
+/* ================= SLIDE 2: crossing ================= */
+document.getElementById('crossCat').innerHTML=avatar('marko','16 14 88 88');
+
+/* ================= SLIDE 3: types ================= */
+(()=>{const r=document.getElementById('trange');
+ const Z=[['Слабка','Менеджер проєкту — швидше координатор. Бюджет і люди залишаються у функціонального керівника.'],
+  ['Збалансована','Повноваження поділено: функціональний керівник і менеджер проєкту рівноправні, кожен — у своїй зоні.'],
+  ['Сильна','Менеджер проєкту контролює бюджет і керує командою. Відділ — «постачальник» фахівців.']];
+ function up(){const v=+r.value,z=v<34?0:v<67?1:2;
+  document.getElementById('bf').style.height=(18+(100-v)*.62)+'%';document.getElementById('bp').style.height=(18+v*.62)+'%';
+  document.getElementById('vf').textContent=(100-v)+'%';document.getElementById('vp').textContent=v+'%';
+  document.getElementById('tname').textContent=Z[z][0];document.getElementById('tdesc').textContent=Z[z][1];
+  document.getElementById('tname').style.color=z===0?'var(--amber)':z===2?'var(--cyan)':'var(--lime)';
+  document.querySelectorAll('.zones span').forEach(s=>s.classList.toggle('on',+s.dataset.z===z))}
+ r.addEventListener('input',up);up()})();
+
+/* ================= SLIDE 4: network ================= */
+(()=>{document.querySelectorAll('.grp').forEach(b=>b.addEventListener('click',()=>{const g=b.dataset.g;
+  document.querySelectorAll('.grp').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('#netsvg .ln').forEach(l=>l.classList.toggle('on',l.dataset.g===g));
+  document.querySelectorAll('#netsvg .nd').forEach(n=>{if(n.dataset.g!=='hub')n.classList.toggle('on',n.dataset.g===g)})}))})();
+
+/* ================= SLIDE 8: pros/cons ================= */
+(()=>{const P=[['Фокус на змісті','Експерти не витрачають час на рутинний контроль і організаційні справи.','У кейсі: Марко пише статтю, звіт збирає координатор'],
+  ['Зовнішні експерти','Фахівців з інших організацій залучають без зміни штату.','У кейсі: науковці з Одеси та Львова'],
+  ['Противаги','Менеджери врівноважують одне одного — менше бюрократії та дублювання контролю.','У кейсі: Ірина тримає ресурси, Андрій — якість'],
+  ['Розвиток людей','Ротація між напрямами, залучення молодих учених.','У кейсі: Марко переходить у групу логістичних систем']];
+ const C=[['Два начальники','Конфлікт пріоритетів і ризик перевантаження виконавця.','У кейсі: звіт і стаття — обидва «до п’ятниці»'],
+  ['Повільніші рішення','Більше погоджень між лініями управління.','У кейсі: купівля датасету через бухгалтерію'],
+  ['Потрібні чіткі правила','Без розподілу повноважень і арбітра матриця стає хаосом.','У кейсі: керівник проєкту розставляє пріоритети'],
+  ['Дорожче управління','Додаткові ролі, наради й комунікація.','У кейсі: окрема роль координатора']];
+ const mk=a=>a.map(x=>`<button class="arg"><h4>${x[0]}</h4><div class="bd">${x[1]}<em>${x[2]}</em></div></button>`).join('');
+ document.getElementById('pros').innerHTML=mk(P);document.getElementById('cons').innerHTML=mk(C);
+ let w='';for(let i=0;i<4;i++)w+=`<rect class="wt" x="${-38+(i%2)*40}" y="${104-Math.floor(i/2)*24}" width="36" height="22" rx="5"/>`;
+ document.getElementById('wL').innerHTML=w;document.getElementById('wR').innerHTML=w;
+ document.querySelectorAll('#wL .wt').forEach(r=>r.setAttribute('fill','#3be3a0'));document.querySelectorAll('#wR .wt').forEach(r=>r.setAttribute('fill','#ff4f8b'));
+ const L=140,cx=180,cy=90;
+ function up(){const p=document.querySelectorAll('.pro .arg.open').length,c=document.querySelectorAll('.con .arg.open').length;
+  const a=(c-p)*5,rad=a*Math.PI/180;
+  document.getElementById('beam').style.transform=`rotate(${a}deg)`;
+  document.getElementById('panL').style.transform=`translate(${cx-L*Math.cos(rad)}px,${cy-L*Math.sin(rad)}px)`;
+  document.getElementById('panR').style.transform=`translate(${cx+L*Math.cos(rad)}px,${cy+L*Math.sin(rad)}px)`;
+  document.querySelectorAll('#wL .wt').forEach((r,i)=>r.classList.toggle('on',i<p));document.querySelectorAll('#wR .wt').forEach((r,i)=>r.classList.toggle('on',i<c));
+  const cap=document.getElementById('scap');
+  if(p+c===0)cap.innerHTML='Відкривайте аргументи 👆';
+  else if(p===4&&c===4)cap.innerHTML='<span class="gr">4</span> : <span class="pk">4</span> — баланс<br><span class="li">тримається на правилах</span>';
+  else cap.innerHTML=`<span class="gr">${p}</span> : <span class="pk">${c}</span>`}
+ document.querySelectorAll('.arg').forEach(b=>b.addEventListener('click',()=>{b.classList.toggle('open');up()}));up()})();
+
+go(0,1);
+</script>
+</body>
+</html>
